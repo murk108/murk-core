@@ -42,3 +42,9 @@ get_entity = function(id) end
 ---@param id Id aka LuaEntity::unit_number
 ---@return integer group_id id that seperates different pastes from each other
 get_group_id = function(id) end
+
+--- mimics xpcall in structure, but the call is unprotected
+---@param callback fun(...) : any
+---@return boolean success
+---@return any result
+function normal_call(callback, placeholder_arg, ...) end

@@ -27,7 +27,6 @@ get_group_id = require("core.handlers.blueprint_handler")
 require("core.handlers.gui_handler")
 require("core.handlers.input_handler")
 require("core.handlers.tick_handler")
-require("core.handlers.hook_handler")
 
 ----------------
 

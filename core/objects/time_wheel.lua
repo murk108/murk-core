@@ -2,7 +2,7 @@
 local M = {}
 M.__index = M
 
-function M.create(max_buckets)
+function M.create(max_buckets, safe_mode)
     local buckets = {}
 
     for i = 1, max_buckets do
@@ -13,20 +13,19 @@ function M.create(max_buckets)
         max_buckets = max_buckets,
         buckets = buckets,
         snapshot_bucket = {},
+
+        call = safe_mode and xpcall or normal_call,
+
+        blacklisted = {},
         future_ticks = {},
+
         listeners = {},
+
         current_index = 1,
         tick = 1
     }
 
     return setmetatable(obj, M)
-end
-
-function M:create_listener(max_buckets)
-    local listener = M.create(max_buckets)
-    local listeners = self.listeners
-    listeners[#listeners+1] = listener
-    return listener
 end
 
 function M:clear()
@@ -36,7 +35,19 @@ function M:clear()
         buckets[i] = {}
     end
 
+    self.snapshot_bucket = {}
+    self.blacklisted = {}
     self.future_ticks = {}
+    self.listeners = {}
+    self.current_index = 1
+    self.tick = 1
+end
+
+function M:create_listener(max_buckets)
+    local listener = M.create(max_buckets)
+    local listeners = self.listeners
+    listeners[#listeners+1] = listener
+    return listener
 end
 
 ---@param self TimeWheel
@@ -55,6 +66,11 @@ function M:schedule(delay, callback)
     end
 
     re_schedule(self, delay, callback)
+    return callback
+end
+
+function M:remove(callback)
+    self.blacklisted[callback] = true
 end
 
 ---@param self TimeWheel   
@@ -69,17 +85,17 @@ local function cycle_listeners(self)
 end
 
 ---@param self TimeWheel
----@return WheelCallback[], integer
-local function get_snapshot(self, curr_bucket)
+local function take_snapshot(self, index)
     local snapshot_bucket = self.snapshot_bucket
-    local bucket_length = #curr_bucket
+    local bucket = self.buckets[index]
+    local size = #bucket
 
-    for i = 1, bucket_length do
-        snapshot_bucket[i] = curr_bucket[i]
-        curr_bucket[i] = nil
+    for i = 1, size do
+        snapshot_bucket[i] = bucket[i]
+        bucket[i] = nil
     end
 
-    return snapshot_bucket, bucket_length
+    return snapshot_bucket, bucket, size
 end
 
 local handler = create_error_handler("Time wheel error: ", false)
@@ -89,28 +105,39 @@ function M:cycle()
     local tick = self.tick
     local current_index = self.current_index
     local future_ticks = self.future_ticks
+    local blacklisted = self.blacklisted
 
-    local curr_bucket = self.buckets[current_index]
-    local snapshot_bucket, bucket_length = get_snapshot(self, curr_bucket)
+    local snapshot_bucket, curr_bucket, size = take_snapshot(self, current_index)
 
-    for i = 1, bucket_length do
+    local call = self.call
+
+    for i = 1, size do
         local callback = snapshot_bucket[i]
+        local blocked = blacklisted[callback]
+
+        if blocked then
+            goto continue
+        end
 
         if tick >= future_ticks[callback] then -- is due
-            local _, delay = xpcall(callback, handler)
+            local _, delay = call(callback, handler)
+            blocked = blacklisted[callback] -- incase the callback calls remove on itself
 
-            if delay ~= false then
+            if delay ~= false and not blocked then
                 if delay == nil or delay == true or delay <= 0 then
                     delay = 1
                 end
 
                 re_schedule(self, delay, callback)
-            else -- remove
+            else
+                blacklisted[callback] = nil
                 future_ticks[callback] = nil
             end
         else
             curr_bucket[#curr_bucket+1] = callback -- not ready then pack back
         end
+
+        ::continue::
     end
 
     self.tick = tick + 1
@@ -125,7 +152,7 @@ function M:split_run(length, chunks, delay, callback)
         local start = (i - 1) * dx + 1
 
         if i == chunks then
-            callback(start, length) -- handle the remainding
+            callback(start, length) -- handle the remaining
             return false
         else
             local last = start + dx - 1

@@ -24,3 +24,7 @@ function create_error_handler(prepend_error, return_value)
         return return_value
     end
 end
+
+function normal_call(callback, placeholder_arg, ...)
+    return true, callback(...) -- first arg for compat with xpcall
+end
