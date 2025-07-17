@@ -43,8 +43,8 @@ function M:clear()
     self.tick = 1
 end
 
-function M:create_listener(max_buckets)
-    local listener = M.create(max_buckets)
+function M:create_listener(max_buckets, safe_mode)
+    local listener = M.create(max_buckets, safe_mode)
     local listeners = self.listeners
     listeners[#listeners+1] = listener
     return listener

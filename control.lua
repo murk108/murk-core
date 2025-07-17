@@ -7,13 +7,14 @@ GameEvents = defines.events
 
 -----------------
 
-Scheduler = require("core.objects.time_wheel").create(4096)
-
--------------------
-
+local time_wheel = require("core.objects.time_wheel")
 local hooker = require("core.objects.hooker")
-Hooker = hooker.create()
-InputHooker = hooker.create()
+
+local safe_mode = false -- for performance
+
+Scheduler = time_wheel.create(4096, safe_mode)
+Hooker = hooker.create(safe_mode)
+InputHooker = hooker.create(safe_mode)
 
 --------------------
 

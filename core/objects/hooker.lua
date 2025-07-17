@@ -22,8 +22,8 @@ function M:clear()
     self.listeners = {}
 end
 
-function M:create_listener()
-    local obj = M.create()
+function M:create_listener(safe_mode)
+    local obj = M.create(safe_mode)
     local listeners = self.listeners
     listeners[#listeners+1] = obj
 

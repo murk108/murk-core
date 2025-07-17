@@ -22,13 +22,15 @@
 local TimeWheel = {}
 
 ---@param max_buckets integer
+---@param safe_mode boolean? whether to use safe calling, or not
 ---@return TimeWheel
-function TimeWheel.create(max_buckets) end
+function TimeWheel.create(max_buckets, safe_mode) end
 
 --- creates a timewheel that listens to the cycles of the self
 ---@param max_buckets integer
+---@param safe_mode boolean? whether to use safe calling, or not
 ---@return TimeWheel
-function TimeWheel:create_listener(max_buckets) end
+function TimeWheel:create_listener(max_buckets, safe_mode) end
 
 --- return integer for N tick delay.
 --- return nothing for 1 tick delay.
@@ -60,12 +62,14 @@ function TimeWheel:clear() end
 ---@field listeners Hooker[]
 local Hooker = {}
 
+---@param safe_mode boolean? whether to use safe calling, or not
 ---@return Hooker
-function Hooker.create() end
+function Hooker.create(safe_mode) end
 
 --- creates a hooker that listens to all of the self's hooks
+---@param safe_mode boolean? whether to use safe calling, or not
 ---@return Hooker
-function Hooker:create_listener() end
+function Hooker:create_listener(safe_mode) end
 
 --- return false in the callback to remove the callback.
 --- return nothing in the callback to do nothing.

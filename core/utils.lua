@@ -1,21 +1,13 @@
-local print_cache = {"[CORE LOG] "}
-local print_scheduled = false
-local print_delay = 10
+local total_lines = 0
 
 function print(str)
-    print_cache[#print_cache+1] = str
+    total_lines = total_lines + 1
+    local current_line = total_lines
 
-    if not print_scheduled then
-        Scheduler:schedule(print_delay, function()
-            game.print(table.concat(print_cache, "\n"))
-
-            print_cache = {"[CORE LOG] "}
-            print_scheduled = false
-            return false
-        end)
-
-        print_scheduled = true
-    end
+    Scheduler:schedule(1, function ()
+        game.print(current_line .. ": " .. tostring(str))
+        return false
+    end)
 end
 
 function create_error_handler(prepend_error, return_value)
